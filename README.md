@@ -23,7 +23,7 @@ npm run icons      # regenera os ícones a partir de public/icons/logo.svg
 - Patrimônio em R$ ou US$, variação 24h, alocação, evolução diária, **preço médio estimado** (custo médio pelas entradas on-chain, com câmbio histórico para o custo em reais) e preço médio manual que substitui o estimado.
 - Tokens sem liquidez (meme/spam enviado de presente) ficam fora do patrimônio.
 
-**Indicadores** — começa com o **veredito**, baseado exclusivamente nos dados disponíveis: *é hora de comprar*, *de não fazer nada* ou *de vender* (termômetro do ciclo × regime de mercado), e um aviso à parte de **"é melhor ficar quieto"** quando faltam dados, os sinais brigam, a volatilidade ou a alavancagem estão extremas, houve hack grande na semana ou o sentimento está no extremo. Depois, sete abas:
+**Indicadores** — começa com o **veredito**, baseado exclusivamente nos dados disponíveis e **conservador de propósito** (na dúvida, não fazer nada): *é hora de comprar*, *de não fazer nada* ou *de vender*, cruzando o termômetro do ciclo, o regime de mercado e uma **régua de capitulação** de 6 sinais de fundo. Com regime 3 nunca é "comprar"; com capitulação forte aparece só uma **parcela de seguro** (10–20% de uma parcela normal), para o cenário menos provável de o fundo ser agora. Mostra também o **custo de esperar** (Selic e juro real, do Banco Central) e um aviso à parte de **"é melhor ficar quieto"** quando faltam dados, os sinais brigam, a volatilidade ou a alavancagem estão extremas, houve hack grande na semana ou o sentimento está no extremo. Depois, sete abas:
 
 - **Visão geral**: BTC/ETH/SOL, termômetro do ciclo, Medo & Ganância, mercado, funding e uma "leitura do dia" com o porquê de cada sinal (inclui o regime).
 - **Regime e macro**: nível 1 (expansão), 2 (seletivo) ou 3 (deterioração) pela soma de 11 sinais — Fed funds, expectativa (T-bill 3m − Fed funds), juro real de 10 anos, DXY, balanço do Fed, reverse repo, CPI, desemprego, stablecoins, dominância do BTC e tendência do BTC. Gráficos de juros, curva 10a−2a, liquidez, saldo/fluxo das corretoras e hacks recentes. O nível define o ritmo das compras, não o que comprar.
@@ -57,6 +57,7 @@ npm run icons      # regenera os ícones a partir de public/icons/logo.svg
 | Treasuries nominais e reais | Tesouro americano | — |
 | CPI e desemprego | BLS (25 consultas/dia sem chave) | — |
 | Dólar (DXY) | calculado com o câmbio do BCE (Frankfurter) | — |
+| Selic e IPCA | Banco Central (SGS) | — |
 | Liquidez de saída, funding | Bybit, OKX, Binance | — |
 
 ## O que precisa de cadastro (grátis)

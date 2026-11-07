@@ -412,3 +412,22 @@ export const NIVEIS = {
   2: { nome: 'Nível 2 — Seletivo', tom: 'aviso' as const, ritmo: 'Sinais mistos: comprar devagar e só o que passou em todos os filtros.' },
   3: { nome: 'Nível 3 — Deterioração', tom: 'perigo' as const, ritmo: 'Ambiente hostil a risco: reduzir o ritmo ou esperar. Não fazer nada também é decisão.' },
 }
+
+// ---------------------------------------------------------------------------
+// Brasil: o custo de esperar (Banco Central, SGS)
+// ---------------------------------------------------------------------------
+
+/** Selic meta e IPCA de 12 meses: quanto rende ficar parado em renda fixa. */
+export const useSelic = () =>
+  useQuery({
+    queryKey: ['macro', 'selic'],
+    queryFn: async () => {
+      type R = { data: string; valor: string }[]
+      const sgs = (n: number) => pedirJson<R>(`https://api.bcb.gov.br/dados/serie/bcdata.sgs.${n}/dados/ultimos/1?formato=json`)
+      const [selic, ipca] = await Promise.all([sgs(432), sgs(13522)])
+      const s = Number(selic[0]?.valor)
+      const i = Number(ipca[0]?.valor)
+      return { selic: s, ipca12m: i, real: ((1 + s / 100) / (1 + i / 100) - 1) * 100 }
+    },
+    staleTime: 12 * HORA,
+  })

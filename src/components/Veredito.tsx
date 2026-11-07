@@ -1,6 +1,12 @@
 import { useState } from 'react'
-import { ChevronDown, Hand, Loader2, ShoppingCart, PauseCircle, TrendingDown } from 'lucide-react'
-import { useVeredito, type Acao } from '../lib/indicators/veredito'
+import { ChevronDown, Hand, Landmark, Loader2, ShieldCheck, ShoppingCart, PauseCircle, TrendingDown } from 'lucide-react'
+import { useVeredito, type Acao, type Parcela } from '../lib/indicators/veredito'
+
+const PARCELA: Record<Exclude<Parcela, null>, string> = {
+  normal: 'Em parcelas, no ritmo normal',
+  metade: 'Em parcelas, na metade do ritmo',
+  seguro: 'Opcional: só uma parcela de seguro (10–20% de uma parcela normal)',
+}
 
 const OPCOES: { acao: Acao; texto: string; Icone: typeof ShoppingCart }[] = [
   { acao: 'comprar', texto: 'É hora de comprar', Icone: ShoppingCart },
@@ -31,6 +37,14 @@ export function Veredito() {
           </div>
         ))}
       </div>
+      {v.parcela && v.realidade && (
+        <div className={`veredito-parcela ${v.parcela}`}>
+          <ShieldCheck size={16} />
+          <div>
+            <b>{PARCELA[v.parcela]}.</b> {v.realidade}
+          </div>
+        </div>
+      )}
       {v.quieto.length > 0 && (
         <div className="veredito-quieto">
           <Hand size={16} />
@@ -44,6 +58,24 @@ export function Veredito() {
           </div>
         </div>
       )}
+      <div className="regua" aria-label={`Régua de capitulação: ${v.sinais} de 6`}>
+        <span className="regua-titulo">
+          Régua de capitulação <b>{v.sinais}/6</b>
+        </span>
+        {v.regua.map((r) => (
+          <span key={r.id} className={`regua-sinal${r.ativo ? ' on' : ''}${r.ativo == null ? ' sem' : ''}`} title={`${r.nome}: ${r.valor}`}>
+            <i />
+            {r.nome.split(' (')[0]}
+          </span>
+        ))}
+      </div>
+      {v.esperar && (
+        <p className="veredito-esperar">
+          <Landmark size={13} /> Custo de esperar: parado na renda fixa rende a Selic de{' '}
+          <b>{v.esperar.selic.toLocaleString('pt-BR', { maximumFractionDigits: 2 })}% a.a.</b>, cerca de{' '}
+          <b>{v.esperar.real.toLocaleString('pt-BR', { maximumFractionDigits: 1 })}%</b> acima da inflação. Comprar só faz sentido com folga sobre isso.
+        </p>
+      )}
       <ul className="veredito-porques">
         {v.porques.map((p) => (
           <li key={p}>{p}</li>
@@ -55,22 +87,26 @@ export function Veredito() {
       {aberto && (
         <div className="explica veredito-regra">
           <p>
-            Dois eixos do método: o <b>preço</b> (termômetro do ciclo, média de 9 indicadores de valuation do BTC) e o <b>ambiente</b> (regime
-            de mercado pela soma de 11 sinais macro e de liquidez).
+            Conservador de propósito: <b>na dúvida, não fazer nada</b>. Três eixos: o <b>preço</b> (termômetro do ciclo, média de 9 indicadores
+            de valuation do BTC), o <b>ambiente</b> (regime de mercado, soma de 11 sinais macro e de liquidez) e a <b>régua de capitulação</b> (6
+            sinais que, no passado, só apareceram perto de fundos).
           </p>
           <p>
-            <b>Comprar</b>: termômetro ≤ 35 com regime 1 ou 2, ou ≤ 20 em qualquer regime. <b>Vender</b>: termômetro ≥ 75, ou ≥ 60 com regime 3.{' '}
-            <b>Não fazer nada</b>: o resto.
+            <b>Comprar</b>: regime 1 com termômetro ≤ 35 (ritmo normal), ou regime 2 com termômetro ≤ 30 e pelo menos 1 sinal de capitulação
+            (metade do ritmo). <b>Com regime 3, nunca é "comprar"</b>: barato costuma ficar mais barato. <b>Vender</b>: termômetro ≥ 75, ou ≥ 60
+            com regime 3. <b>Não fazer nada</b>: o resto.
           </p>
           <p>
-            <b>Ficar quieto</b> é um aviso à parte, que pode vir junto de qualquer veredito: dados faltando, preço e ambiente apontando para lados
-            opostos, volatilidade acima de 75% ao ano ou movimento de 7% em 24 h, funding acima de 40% ou abaixo de −20% ao ano, hack acima de US$
-            100 mi na semana, ou Medo &amp; Ganância em 10 ou menos, ou 90 ou mais. Nessas horas, esperar costuma custar menos do que errar.
+            <b>Parcela de seguro</b>: só com regime 3 e capitulação forte (termômetro ≤ 20 e 3 sinais, ou 5 sinais). O mais provável continua
+            sendo aparecer preço melhor; a parcela existe para o cenário menos provável de o fundo ser agora — pelo menos você terá comprado
+            um pouco. 10 a 20% de uma parcela normal, no máximo uma por semana.
           </p>
           <p>
-            Comprar aqui significa o ritmo da carteira (BTC/ETH e o que passou na triagem e no dossiê), nunca "qualquer coisa". Não é
-            recomendação de investimento.
+            <b>Ficar quieto</b> é um aviso à parte: dados faltando, preço e ambiente em lados opostos, volatilidade acima de 75% ao ano ou
+            movimento de 7% em 24 h, funding acima de 40% ou abaixo de −20% ao ano, hack acima de US$ 100 mi na semana, ou Medo &amp; Ganância
+            em 10 ou menos, ou 90 ou mais.
           </p>
+          <p>Comprar aqui é o ritmo da carteira (BTC/ETH e o que passou na triagem e no dossiê), nunca "qualquer coisa". Não é recomendação de investimento.</p>
         </div>
       )}
     </section>
