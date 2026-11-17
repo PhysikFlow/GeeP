@@ -44,6 +44,11 @@ export default defineConfig({
         globPatterns: ['**/*.{js,css,html,png,svg,woff2}'],
         navigateFallback: 'index.html',
         cleanupOutdatedCaches: true,
+        // A versão nova assume na hora (e a página recarrega sozinha). Sem
+        // isto ela ficava "aguardando" até fechar todas as abas do app, e o
+        // PWA aberto continuava mostrando a versão anterior.
+        skipWaiting: true,
+        clientsClaim: true,
       },
     }),
   ],
