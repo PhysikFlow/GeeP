@@ -4,7 +4,7 @@ import { useSyncExternalStore } from 'react'
 // hospedagem estática, no PWA instalado e com o botão voltar do Android.
 
 export type Pagina = 'carteira' | 'indicadores' | 'em-breve'
-export type AbaIndicadores = 'geral' | 'regime' | 'ciclo' | 'triagem' | 'short' | 'derivativos' | 'rendimentos' | 'redes'
+export type AbaIndicadores = 'geral' | 'regime' | 'ciclo' | 'triagem' | 'short' | 'pool' | 'derivativos' | 'rendimentos' | 'redes'
 
 export const ABAS_INDICADORES: { id: AbaIndicadores; rotulo: string }[] = [
   { id: 'geral', rotulo: 'Visão geral' },
@@ -12,6 +12,7 @@ export const ABAS_INDICADORES: { id: AbaIndicadores; rotulo: string }[] = [
   { id: 'ciclo', rotulo: 'Ciclo do BTC' },
   { id: 'triagem', rotulo: 'Triagem de tokens' },
   { id: 'short', rotulo: 'Short 2x' },
+  { id: 'pool', rotulo: 'Range de pool' },
   { id: 'derivativos', rotulo: 'Derivativos' },
   { id: 'rendimentos', rotulo: 'Rendimentos DeFi' },
   { id: 'redes', rotulo: 'Redes' },

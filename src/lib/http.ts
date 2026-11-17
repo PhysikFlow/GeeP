@@ -18,6 +18,8 @@ const REGRAS: Record<string, Regra> = {
   'yields.llama.fi': { simultaneos: 3, intervaloMs: 120 },
   'mainnet.helius-rpc.com': { simultaneos: 3, intervaloMs: 120 },
   'api.bls.gov': { simultaneos: 1, intervaloMs: 600 },
+  'api.geckoterminal.com': { simultaneos: 1, intervaloMs: 2100 },
+  'api.orca.so': { simultaneos: 2, intervaloMs: 300 },
   'api.bybit.com': { simultaneos: 2, intervaloMs: 200 },
   'community-api.coinmetrics.io': { simultaneos: 1, intervaloMs: 700 },
   'api.helius.xyz': { simultaneos: 2, intervaloMs: 250 },

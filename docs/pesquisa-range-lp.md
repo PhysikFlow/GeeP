@@ -106,9 +106,29 @@ Exemplo real, SOL/USDC no Raydium (CLMM, taxa 0,04%):
 - Taxas de transação para abrir e reposicionar, e slippage, entram como custo fixo informado por você.
 - Não é recomendação de investimento: o app mostra a conta e as premissas para você decidir.
 
-## 6. Decisões em aberto (suas)
+## 6. Decisões tomadas e o que foi implementado (aba "Range de pool")
 
-1. **Protocolo e rede:** começar só pelo Raydium CLMM (Solana), onde os dados grátis são os mais completos?
-2. **Pares:** SOL/USDC, ETH/USDC e cbBTC/USDC? Pares correlacionados ficam para depois?
-3. **Horizonte:** de quanto em quanto tempo você aceita reposicionar (7, 14 ou 30 dias)? Isso define a largura.
-4. **Saída:** três perfis (conservador / equilibrado / agressivo) ou só um range recomendado?
+- **Três perfis:** conservador (90% das janelas dentro), equilibrado (75%) e agressivo (50%).
+- **Horizonte:** seletor de 7, 14 ou 30 dias; o padrão é 14.
+- **Custo de reposicionamento:** informado por você, em % da posição (padrão 0,2%).
+- **Pares e pools de referência:** descoberta na implementação — no Raydium só SOL/USDC tem liquidez; ETH/USDC e cbBTC/USDC lá estão praticamente vazias. Ficou assim:
+
+  | Par | Pool de referência | De onde vêm os dados |
+  |---|---|---|
+  | SOL/USDC | maior Whirlpool da Orca | API da Orca: liquidez ativa no preço atual e taxas de 7 dias |
+  | cbBTC/USDC | maior Whirlpool da Orca | API da Orca |
+  | ETH/USDC | Uniswap v3 USDC/WETH 0,05% na Ethereum | liquidez e preço lidos do contrato por RPC público; volume da GeckoTerminal |
+
+  No ETH/USDC, a conta supõe de forma conservadora que 1/4 das taxas vai para o protocolo (fee switch do Uniswap).
+- **Ponto de partida sugerido:** com R > 1, a conta sempre prefere o range mais estreito, porque supõe reposicionar na hora certa e volume estável. O app marca:
+  - nenhum, se R < 1;
+  - **conservador**, se a margem é fina, se o veredito geral pede quietude ou se o ativo está em tendência de baixa;
+  - equilibrado só quando tudo está limpo.
+
+Primeira leitura (17/11/2026, horizonte de 14 dias):
+
+| Par | R | Leitura |
+|---|---|---|
+| SOL/USDC | 1,77 | vale considerar |
+| cbBTC/USDC | 1,40 | margem fina |
+| ETH/USDC | 0,67 | fique de fora — a pool de 0,05% na Ethereum tem muita liquidez "just-in-time" disputando as taxas |

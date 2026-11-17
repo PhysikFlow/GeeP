@@ -9,6 +9,7 @@ import Redes from './indicadores/Redes'
 import Regime from './indicadores/Regime'
 import Triagem from './indicadores/Triagem'
 import Short from './indicadores/Short'
+import Pool from './indicadores/Pool'
 
 export default function IndicadoresPage({ aba }: { aba: AbaIndicadores }) {
   return (
@@ -22,6 +23,7 @@ export default function IndicadoresPage({ aba }: { aba: AbaIndicadores }) {
       {aba === 'ciclo' && <Ciclo />}
       {aba === 'triagem' && <Triagem />}
       {aba === 'short' && <Short />}
+      {aba === 'pool' && <Pool />}
       {aba === 'derivativos' && <Derivativos />}
       {aba === 'rendimentos' && <Rendimentos />}
       {aba === 'redes' && <Redes />}

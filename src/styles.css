@@ -778,3 +778,15 @@ textarea.input.texto { font-family: inherit; font-size: 13px; }
 .veredito-compacto:hover { text-decoration: none; border-color: #3a434f; }
 .veredito-compacto .veredito-opcao { padding: 5px 10px; font-size: 13px; }
 .veredito-quieto-mini { display: inline-flex; align-items: center; gap: 5px; color: var(--warning-txt); font-weight: 600; }
+
+/* ---------- range de pool ---------- */
+
+.range-cartao { padding: 14px 16px; display: flex; flex-direction: column; gap: 10px; border-top: 3px solid var(--cor); }
+.range-topo { display: flex; align-items: center; gap: 8px; font-size: 12.5px; }
+.range-topo i { width: 10px; height: 10px; border-radius: 3px; background: var(--cor); }
+.range-topo b { font-size: 14px; }
+.range-topo span { margin-left: auto; }
+.range-faixa { font-size: 20px; font-weight: 700; letter-spacing: -.01em; }
+.short-faixa.aviso { color: var(--warning-txt); }
+.range-cartao.sugerido { border-color: rgba(100, 192, 138, .45); }
+.range-selo { align-self: flex-start; }
