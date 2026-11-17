@@ -11,15 +11,42 @@ import { useAltura, useHashrateHistorico, useMedoGanancia, useMvrvCoinMetrics, u
 // NUPL e preço realizado vêm prontos do bitcoin-data.com (grátis, com atraso
 // de até 7 dias e 15 chamadas por dia).
 
+/** Indicadores que medem a mesma coisa formam uma família; o termômetro faz a
+ *  média DENTRO de cada família e depois ENTRE as famílias. Sem isso, os
+ *  quatro "preço ÷ média longa" pesariam quase metade do resultado. */
+export type Familia = 'custo' | 'tendencia' | 'mineracao' | 'momento'
+export const FAMILIAS: Record<Familia, string> = {
+  custo: 'Custo on-chain (o que o mercado pagou)',
+  tendencia: 'Preço contra médias longas',
+  mineracao: 'Mineração',
+  momento: 'Momento e sentimento',
+}
+
 export type Componente = {
   id: string
   nome: string
+  familia: Familia
   valor: number | null
   texto: string
   /** 0 = zona de fundo histórico, 100 = zona de topo histórico. */
   nota: number | null
+  /** Nota se o BTC estivesse no preço p (o resto parado); null = não depende do preço. */
+  notaEm?: (p: number) => number | null
   fundo: string
   topo: string
+}
+
+/** Média das famílias (cada família = média dos seus componentes com nota). */
+export function termometroDe(cs: Componente[], p?: number) {
+  const porFamilia = new Map<Familia, number[]>()
+  for (const c of cs) {
+    const n = p != null && c.notaEm ? c.notaEm(p) : c.nota
+    if (n == null) continue
+    porFamilia.set(c.familia, [...(porFamilia.get(c.familia) ?? []), n])
+  }
+  const medias = [...porFamilia.values()].map((ns) => ns.reduce((a, b) => a + b, 0) / ns.length)
+  const total = cs.filter((c) => c.nota != null).length
+  return total >= 3 && medias.length >= 2 ? medias.reduce((a, b) => a + b, 0) / medias.length : null
 }
 
 export const HALVING_BLOCOS = 210_000
@@ -80,24 +107,31 @@ export function useCicloBtc() {
     const m200 = w200 ? calc.atual / w200 : null
     const lpr = ultimo(calc.lpRazao)
     const fmt = (v: number | null, c = 2) => (v == null ? '—' : fixo(v, c))
+    // Como cada indicador muda se SÓ o preço mudar (k = p ÷ preço de hoje).
+    // RSI, Pi Cycle e Medo & Ganância ficam parados: na prática caem junto com
+    // o preço, então o gatilho real tende a vir um pouco ANTES do calculado.
+    const p0 = calc.atual
+    const proporcional = (v: number | null, f: (x: number | null) => number | null) => (v == null ? undefined : (p: number) => f((v * p) / p0))
+    // MVRV-Z no preço p: z·(k·M − 1)/(M − 1), com M = MVRV de hoje
+    const zEm = z != null && mvrv != null && Math.abs(mvrv - 1) > 0.02 ? (p: number) => escala((z * ((p / p0) * mvrv - 1)) / (mvrv - 1), 0, 7) : undefined
+    const nuplEm = mvrv != null ? (p: number) => escala(1 - 1 / ((mvrv * p) / p0), 0, 0.75) : undefined
     return [
       // MVRV-Z do bitcoin-data (cota de 15/dia); sem ele, o MVRV puro da Coin Metrics
       z != null || mvrv == null
-        ? { id: 'mvrvz', nome: 'MVRV Z-Score', valor: z, texto: fmt(z), nota: escala(z, 0, 7), fundo: '< 0', topo: '> 7' }
-        : { id: 'mvrvz', nome: 'MVRV (Coin Metrics)', valor: mvrv, texto: fmt(mvrv), nota: escala(mvrv, 0.9, 3.7), fundo: '< 1', topo: '> 3,7' },
-      { id: 'nupl', nome: 'NUPL', valor: n, texto: fmt(n), nota: escala(n, 0, 0.75), fundo: '< 0', topo: '> 0,75' },
-      { id: 'mayer', nome: 'Múltiplo de Mayer', valor: may, texto: fmt(may), nota: escala(may, 0.6, 2.4), fundo: '< 0,8', topo: '> 2,4' },
-      { id: 'puell', nome: 'Múltiplo de Puell', valor: pu, texto: fmt(pu), nota: escala(pu, 0.5, 4, true), fundo: '< 0,5', topo: '> 4' },
-      { id: 'pi', nome: 'Pi Cycle (111d ÷ 2×350d)', valor: pi, texto: fmt(pi), nota: escala(pi, 0.35, 1), fundo: '< 0,4', topo: '≥ 1 (cruzou)' },
-      { id: 'w200', nome: 'Preço ÷ média de 200 semanas', valor: m200, texto: m200 ? `${fmt(m200)}×` : '—', nota: escala(m200, 1, 5, true), fundo: '< 1×', topo: '> 5×' },
-      { id: 'lp', nome: 'Preço ÷ lei de potência', valor: lpr, texto: lpr ? `${fmt(lpr)}×` : '—', nota: escala(lpr, 0.42, 3, true), fundo: '< 0,5×', topo: '> 3×' },
-      { id: 'rsiw', nome: 'RSI semanal (14)', valor: rw, texto: fmt(rw, 0), nota: escala(rw, 30, 90), fundo: '< 35', topo: '> 85' },
-      { id: 'fng', nome: 'Medo & Ganância', valor: f, texto: fmt(f, 0), nota: f, fundo: '< 20', topo: '> 80' },
-    ]
+        ? { id: 'mvrvz', nome: 'MVRV Z-Score', familia: 'custo', valor: z, texto: fmt(z), nota: escala(z, 0, 7), notaEm: zEm, fundo: '< 0', topo: '> 7' }
+        : { id: 'mvrvz', nome: 'MVRV (Coin Metrics)', familia: 'custo', valor: mvrv, texto: fmt(mvrv), nota: escala(mvrv, 0.9, 3.7), notaEm: proporcional(mvrv, (x) => escala(x, 0.9, 3.7)), fundo: '< 1', topo: '> 3,7' },
+      { id: 'nupl', nome: 'NUPL', familia: 'custo', valor: n, texto: fmt(n), nota: escala(n, 0, 0.75), notaEm: nuplEm, fundo: '< 0', topo: '> 0,75' },
+      { id: 'mayer', nome: 'Múltiplo de Mayer', familia: 'tendencia', valor: may, texto: fmt(may), nota: escala(may, 0.6, 2.4), notaEm: proporcional(may, (x) => escala(x, 0.6, 2.4)), fundo: '< 0,8', topo: '> 2,4' },
+      { id: 'puell', nome: 'Múltiplo de Puell', familia: 'mineracao', valor: pu, texto: fmt(pu), nota: escala(pu, 0.5, 4, true), notaEm: proporcional(pu, (x) => escala(x, 0.5, 4, true)), fundo: '< 0,5', topo: '> 4' },
+      { id: 'pi', nome: 'Pi Cycle (111d ÷ 2×350d)', familia: 'tendencia', valor: pi, texto: fmt(pi), nota: escala(pi, 0.35, 1), fundo: '< 0,4', topo: '≥ 1 (cruzou)' },
+      { id: 'w200', nome: 'Preço ÷ média de 200 semanas', familia: 'tendencia', valor: m200, texto: m200 ? `${fmt(m200)}×` : '—', nota: escala(m200, 1, 5, true), notaEm: proporcional(m200, (x) => escala(x, 1, 5, true)), fundo: '< 1×', topo: '> 5×' },
+      { id: 'lp', nome: 'Preço ÷ lei de potência', familia: 'tendencia', valor: lpr, texto: lpr ? `${fmt(lpr)}×` : '—', nota: escala(lpr, 0.42, 3, true), notaEm: proporcional(lpr, (x) => escala(x, 0.42, 3, true)), fundo: '< 0,5×', topo: '> 3×' },
+      { id: 'rsiw', nome: 'RSI semanal (14)', familia: 'momento', valor: rw, texto: fmt(rw, 0), nota: escala(rw, 30, 90), fundo: '< 35', topo: '> 85' },
+      { id: 'fng', nome: 'Medo & Ganância', familia: 'momento', valor: f, texto: fmt(f, 0), nota: f, fundo: '< 20', topo: '> 80' },
+    ] satisfies Componente[]
   }, [calc, mvrvZ.data, nupl.data, fng.data, snapshot.data, cm.data])
 
-  const notas = componentes.map((c) => c.nota).filter((x): x is number => x != null)
-  const termometro = notas.length >= 3 ? notas.reduce((a, b) => a + b, 0) / notas.length : null
+  const termometro = termometroDe(componentes)
 
   const halving = useMemo(() => {
     const h = altura.data

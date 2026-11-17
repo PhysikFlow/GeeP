@@ -8,11 +8,12 @@ import Rendimentos from './indicadores/Rendimentos'
 import Redes from './indicadores/Redes'
 import Regime from './indicadores/Regime'
 import Triagem from './indicadores/Triagem'
+import Short from './indicadores/Short'
 
 export default function IndicadoresPage({ aba }: { aba: AbaIndicadores }) {
   return (
     <div className="page">
-      <Veredito />
+      <Veredito compacto={aba !== 'geral'} />
       <div className="toolbar">
         <Segmentado rotulo="Seção" valor={aba} opcoes={ABAS_INDICADORES.map((a) => ({ valor: a.id, rotulo: a.rotulo }))} onChange={(a) => irPara('indicadores', a)} />
       </div>
@@ -20,6 +21,7 @@ export default function IndicadoresPage({ aba }: { aba: AbaIndicadores }) {
       {aba === 'regime' && <Regime />}
       {aba === 'ciclo' && <Ciclo />}
       {aba === 'triagem' && <Triagem />}
+      {aba === 'short' && <Short />}
       {aba === 'derivativos' && <Derivativos />}
       {aba === 'rendimentos' && <Rendimentos />}
       {aba === 'redes' && <Redes />}

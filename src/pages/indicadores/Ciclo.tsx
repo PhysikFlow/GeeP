@@ -2,7 +2,7 @@ import { useState, type ReactNode } from 'react'
 import { COR } from '../../lib/cores'
 import { compacto, data, dinheiro, numero, fixo } from '../../lib/format'
 import { ultimo } from '../../lib/indicators/calc'
-import { faixaDoTermometro, useCicloBtc } from '../../lib/indicators/ciclo'
+import { FAMILIAS, faixaDoTermometro, useCicloBtc } from '../../lib/indicators/ciclo'
 import type { Serie } from '../../lib/precos'
 import { Grafico, inicioDaJanela, JANELAS, type Janela, type LinhaRef, type SerieG } from '../../components/Grafico'
 import { Medidor } from '../../components/Visuais'
@@ -25,7 +25,7 @@ export default function Ciclo() {
   return (
     <>
       <div className="grid g-1-2">
-        <Painel titulo="Termômetro do ciclo" pe="Nenhum indicador sozinho acerta o topo ou o fundo; a média de vários erra menos.">
+        <Painel titulo="Termômetro do ciclo" pe="Média por família (custo on-chain, preço contra médias longas, mineração, momento): indicadores que medem a mesma coisa não ganham peso extra.">
           <div className="panel-body">{k ? <Medidor valor={c.termometro} rotulo={faixa.rotulo} escala={['Acumulação', 'Euforia']} /> : <Esqueleto h={150} />}</div>
         </Painel>
         <Painel titulo="Componentes" sub="Posição de cada indicador entre a zona de fundo (verde) e a de topo (vermelho) dos ciclos anteriores">
@@ -35,7 +35,7 @@ export default function Ciclo() {
                 <div>
                   {x.nome}
                   <small>
-                    fundo {x.fundo} · topo {x.topo}
+                    {FAMILIAS[x.familia]} · fundo {x.fundo} · topo {x.topo}
                   </small>
                 </div>
                 <b className="num" style={{ textAlign: 'right' }}>

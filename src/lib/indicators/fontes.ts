@@ -316,3 +316,16 @@ export const useFundingCorretoras = (base: 'BTC' | 'ETH' | 'SOL') =>
     staleTime: 5 * MIN,
     refetchInterval: 5 * MIN,
   })
+
+export type Vela = { t: number; o: number; h: number; l: number; c: number; v: number }
+
+/** Velas diárias completas (abertura, máxima, mínima, fechamento, volume). */
+export const useVelasOhlc = (par: string, dias = 420) =>
+  useQuery({
+    queryKey: ['ind', 'ohlc', par, dias],
+    queryFn: async () => {
+      const v = await velas(par, '1d', Date.now() - dias * 86400_000)
+      return v.map((k) => ({ t: Math.floor(k[0] / 1000), o: Number(k[1]), h: Number(k[2]), l: Number(k[3]), c: Number(k[4]), v: Number(k[5]) })) as Vela[]
+    },
+    staleTime: 30 * MIN,
+  })

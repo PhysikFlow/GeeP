@@ -1,5 +1,6 @@
+import { useMemo } from 'react'
 import { ultimo } from './calc'
-import { useCicloBtc } from './ciclo'
+import { termometroDe, useCicloBtc } from './ciclo'
 import { useDerivativos, useFundingAgora } from './fontes'
 import { useHacks, useRegime, useSelic } from './macro'
 import { useMercado } from '../precos'
@@ -8,9 +9,11 @@ import { useMercado } from '../precos'
 // na dúvida, "não fazer nada". Três eixos:
 //   preço       -> termômetro do ciclo (0 = fundo histórico, 100 = topo)
 //   ambiente    -> regime de mercado (1 expansão, 2 seletivo, 3 deterioração)
-//   capitulação -> régua de 6 sinais que, no passado, só apareceram perto de
-//                  fundos (MVRV < 1, abaixo da média de 200 semanas, NUPL < 0,
-//                  Hash Ribbons, funding negativo por dias, medo extremo)
+//   capitulação -> régua de 6 sinais INDEPENDENTES que, no passado, só
+//                  apareceram perto de fundos (MVRV < 1, abaixo da média de 200
+//                  semanas, queda ≥ 70% desde a máxima, Hash Ribbons, funding
+//                  negativo por dias, medo extremo). NUPL < 0 não entra: é a
+//                  mesma condição de MVRV < 1 e contaria o mesmo fato duas vezes.
 //
 //   VENDER   termômetro ≥ 75, ou ≥ 60 com regime 3
 //   COMPRAR  regime 1 e termômetro ≤ 35 -> ritmo normal
@@ -30,6 +33,9 @@ export type Parcela = 'normal' | 'metade' | 'seguro' | null
 
 export type SinalCapitulacao = { id: string; nome: string; ativo: boolean | null; valor: string }
 
+/** Onde o veredito mudaria se SÓ o preço do BTC mudasse (o resto parado). */
+export type Zona = { nivel: 1 | 2 | 3; comprar: number | null; seguro: number | null; vender: number | null }
+
 export type Veredito = {
   acao: Acao
   parcela: Parcela
@@ -42,7 +48,20 @@ export type Veredito = {
   esperar: { selic: number; real: number } | null
   termometro: number | null
   nivel: 1 | 2 | 3 | null
+  preco: number | null
+  zonas: Zona[]
+  /** Suportes de ciclo do BTC: média de 200 semanas e preço realizado. */
+  suportes: number[]
   pronto: boolean
+}
+
+/** As regras do veredito, sem dados: dá para testar em qualquer preço. */
+export function decidir(V: number, R: 1 | 2 | 3, C: number): { acao: Acao; parcela: Parcela } {
+  if (V >= 75 || (V >= 60 && R === 3)) return { acao: 'vender', parcela: null }
+  if (R === 1 && V <= 35) return { acao: 'comprar', parcela: 'normal' }
+  if (R === 2 && V <= 30 && C >= 1) return { acao: 'comprar', parcela: 'metade' }
+  if (R === 3 && ((V <= 20 && C >= 3) || C >= 5)) return { acao: 'nada', parcela: 'seguro' }
+  return { acao: 'nada', parcela: null }
 }
 
 const f2 = (v: number, c = 2) => v.toLocaleString('pt-BR', { minimumFractionDigits: c, maximumFractionDigits: c })
@@ -64,7 +83,7 @@ export function useVeredito(): Veredito {
   // ---- régua de capitulação ----
   const k = ciclo.calc
   const mvrv = ultimo(ciclo.onchain.cm.data?.mvrv) ?? ciclo.onchain.snapshot.data?.mvrv ?? null
-  const nupl = ultimo(ciclo.onchain.nupl.data) ?? (mvrv ? 1 - 1 / mvrv : null)
+  const ath = k?.ath ?? null
   const w200 = ultimo(k?.s200w)
   const rib = k?.ribbons ?? []
   const ribAgora = ultimo(rib)
@@ -76,7 +95,7 @@ export function useVeredito(): Veredito {
   const regua: SinalCapitulacao[] = [
     { id: 'mvrv', nome: 'BTC abaixo do preço realizado (MVRV < 1)', ativo: mvrv == null ? null : mvrv < 1, valor: mvrv == null ? '—' : `MVRV ${f2(mvrv)}` },
     { id: 'w200', nome: 'BTC abaixo da média de 200 semanas', ativo: w200 && k ? k.atual < w200 : null, valor: w200 && k ? `${f2(k.atual / w200)}× a média` : '—' },
-    { id: 'nupl', nome: 'Mercado no prejuízo (NUPL < 0)', ativo: nupl == null ? null : nupl < 0, valor: nupl == null ? '—' : `NUPL ${f2(nupl)}` },
+    { id: 'dd', nome: 'Queda de 70% ou mais desde a máxima', ativo: ath && k ? k.atual <= ath * 0.3 : null, valor: ath && k ? `${f2((k.atual / ath - 1) * 100, 0)}% da máxima` : '—' },
     {
       id: 'rib',
       nome: 'Hash Ribbons: mineradores saindo da capitulação',
@@ -93,19 +112,13 @@ export function useVeredito(): Veredito {
   let parcela: Parcela = null
   if (V != null && R != null) {
     const v = Math.round(V)
-    if (V >= 75 || (V >= 60 && R === 3)) {
-      acao = 'vender'
+    ;({ acao, parcela } = decidir(V, R, C))
+    if (acao === 'vender')
       porques.push(V >= 75 ? `Termômetro do ciclo em ${v}/100: zona que historicamente marcou topos.` : `Termômetro em ${v}/100 (caro) com o ambiente em deterioração (nível 3).`)
-    } else if (R === 1 && V <= 35) {
-      acao = 'comprar'
-      parcela = 'normal'
-      porques.push(`Termômetro em ${v}/100 (barato) e ambiente em expansão (nível 1).`)
-    } else if (R === 2 && V <= 30 && C >= 1) {
-      acao = 'comprar'
-      parcela = 'metade'
+    else if (parcela === 'normal') porques.push(`Termômetro em ${v}/100 (barato) e ambiente em expansão (nível 1).`)
+    else if (parcela === 'metade')
       porques.push(`Termômetro em ${v}/100 (barato), ambiente seletivo (nível 2) e ${C} sinal(is) de capitulação: compra, mas na metade do ritmo.`)
-    } else {
-      if (R === 3 && ((V <= 20 && C >= 3) || C >= 5)) parcela = 'seguro'
+    else
       porques.push(
         V > 35 && V < 60
           ? `Termômetro em ${v}/100: preço no meio do ciclo, sem vantagem clara para comprar nem para vender.`
@@ -115,12 +128,53 @@ export function useVeredito(): Veredito {
               ? `Termômetro em ${v}/100 (barato), mas com o ambiente em deterioração (nível 3) o método não compra: barato costuma ficar mais barato.`
               : `Termômetro em ${v}/100 (barato), mas sem confirmação: ${C} de 6 sinais de capitulação (o nível ${R} pede pelo menos 1 e termômetro ≤ 30).`,
       )
-    }
     porques.push(`Regime nível ${R}: ${regime.pontos > 0 ? '+' : ''}${regime.pontos} pontos em ${regime.validos} sinais de juros, dólar, liquidez e cripto.`)
     porques.push(`Régua de capitulação: ${C} de 6 sinais de fundo acesos.`)
   } else {
     porques.push('Ainda faltam dados para os eixos de preço e ambiente.')
   }
+
+  // ---- zonas de preço: onde o veredito viraria, se SÓ o preço mudasse ----
+  // Simula o BTC caindo até −75% e subindo até 5×, com regime e sinais que
+  // não dependem do preço parados. Não é previsão: as médias, o preço
+  // realizado e o regime andam todo dia, então as zonas também andam.
+  const p0 = k?.atual ?? null
+  const zonas: Zona[] = []
+  if (p0 && termometroDe(ciclo.componentes) != null) {
+    const fixos = regua.filter((r) => (r.id === 'rib' || r.id === 'fund' || r.id === 'fng') && r.ativo).length
+    const realizado = mvrv ? p0 / mvrv : null
+    const capEm = (p: number) =>
+      fixos + (realizado && p < realizado ? 1 : 0) + (w200 && p < w200 ? 1 : 0) + (ath && p <= ath * 0.3 ? 1 : 0)
+    for (const nivel of [1, 2, 3] as const) {
+      let comprar: number | null = null
+      let seguro: number | null = null
+      let vender: number | null = null
+      for (let i = 0; i <= 300; i++) {
+        const p = p0 * (1 - i * 0.0025)
+        const Vp = termometroDe(ciclo.componentes, p)
+        if (Vp == null) break
+        const d = decidir(Vp, nivel, capEm(p))
+        if (comprar == null && d.acao === 'comprar') comprar = p
+        if (seguro == null && d.parcela === 'seguro') seguro = p
+        if (comprar != null && (nivel !== 3 || seguro != null)) break
+      }
+      for (let i = 0; i <= 400; i++) {
+        const p = p0 * (1 + i * 0.01)
+        const Vp = termometroDe(ciclo.componentes, p)
+        if (Vp == null) break
+        if (decidir(Vp, nivel, capEm(p)).acao === 'vender') {
+          vender = p
+          break
+        }
+      }
+      zonas.push({ nivel, comprar, seguro, vender })
+    }
+  }
+
+  const suportes = useMemo(
+    () => [w200, mvrv && p0 ? p0 / mvrv : null].filter((x): x is number => x != null && Number.isFinite(x)),
+    [w200, mvrv, p0],
+  )
 
   const realidade =
     parcela === 'seguro'
@@ -162,6 +216,9 @@ export function useVeredito(): Veredito {
     esperar: selic.data ? { selic: selic.data.selic, real: selic.data.real } : null,
     termometro: V,
     nivel: R,
+    preco: p0,
+    zonas,
+    suportes,
     pronto: V != null && R != null,
   }
 }
