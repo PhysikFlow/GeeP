@@ -27,6 +27,7 @@ import { Segmentado } from './components/ui'
 import { Protecao } from './components/Protecao'
 import AjustesModal from './pages/AjustesModal'
 import PortfolioPage from './pages/PortfolioPage'
+import SimulacaoPage from './pages/SimulacaoPage'
 
 const IndicadoresPage = lazy(() => import('./pages/IndicadoresPage'))
 
@@ -81,7 +82,7 @@ export default function App() {
       ? { h: 'Portfólio', p: 'Suas carteiras públicas de BTC, ETH e SOL num lugar só' }
       : rota.pagina === 'indicadores'
         ? { h: ABAS_INDICADORES.find((a) => a.id === rota.aba)?.rotulo ?? 'Indicadores', p: 'Indicadores de mercado para basear decisões' }
-        : { h: 'Em breve', p: 'Espaço reservado para a próxima ferramenta' }
+        : { h: 'Simulação', p: 'Carteiras de mentirinha: o método contra você' }
 
   return (
     <div className="app-shell">
@@ -128,10 +129,10 @@ export default function App() {
               })}
             </div>
           )}
-          <span className="nav-group-label">Próximo</span>
-          <button className={`nav-item${rota.pagina === 'em-breve' ? ' active' : ''}`} onClick={() => irPara('em-breve')} title="Em breve">
+          <span className="nav-group-label">Treino</span>
+          <button className={`nav-item${rota.pagina === 'em-breve' ? ' active' : ''}`} onClick={() => irPara('em-breve')} title="Simulação">
             <Sparkles size={18} />
-            <span>Em breve</span>
+            <span>Simulação</span>
           </button>
         </nav>
         <div className="sidebar-foot">
@@ -207,19 +208,7 @@ export default function App() {
             </Suspense>
           )}
         </Protecao>
-        {rota.pagina === 'em-breve' && (
-          <div className="page">
-            <div className="em-breve">
-              <div>
-                <Sparkles size={34} />
-                <h2>Página em branco</h2>
-                <p className="muted" style={{ marginTop: 6 }}>
-                  Reservada para a próxima ferramenta.
-                </p>
-              </div>
-            </div>
-          </div>
-        )}
+        {rota.pagina === 'em-breve' && <SimulacaoPage />}
       </main>
 
       {ajustesAbertos && <AjustesModal onFechar={() => setAjustesAbertos(false)} />}

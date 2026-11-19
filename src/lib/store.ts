@@ -47,7 +47,38 @@ export type Dossie = {
   atualizadoEm: number
 }
 
-type Estado = { carteiras: Carteira[]; ajustes: Ajustes; dossies: Record<string, Dossie> }
+/** Uma operação numa carteira de simulação, com o que o método dizia na hora. */
+export type OpSim = {
+  t: number
+  ativo: 'BTC' | 'ETH' | 'SOL'
+  /** quantidade comprada (+) ou vendida (−) */
+  qtd: number
+  preco: number
+  /** USD que saiu (+) ou entrou (−) no caixa, já com taxa e slippage */
+  usd: number
+  origem: 'metodo' | 'manual'
+  /** veredito do método no momento */
+  metodo: 'comprar' | 'nada' | 'vender'
+  nota?: string
+}
+
+export type CarteiraSim = {
+  id: string
+  nome: string
+  modo: 'metodo' | 'manual' | 'misto'
+  inicialUsd: number
+  caixaUsd: number
+  /** desde quando o caixa rende Selic (custo de oportunidade) */
+  caixaDesde: number
+  qtd: Record<'BTC' | 'ETH' | 'SOL', number>
+  ops: OpSim[]
+  /** preços na criação, para o benchmark "só BTC" */
+  btcInicial: number
+  criadaEm: number
+  ultimoRobo?: string
+}
+
+type Estado = { carteiras: Carteira[]; ajustes: Ajustes; dossies: Record<string, Dossie>; sims: CarteiraSim[] }
 
 const CHAVE = 'geep.estado.v1'
 
@@ -67,12 +98,13 @@ function ler(): Estado {
         carteiras: Array.isArray(e.carteiras) ? e.carteiras : [],
         ajustes: { ...AJUSTES_PADRAO, ...e.ajustes },
         dossies: e.dossies && typeof e.dossies === 'object' ? e.dossies : {},
+        sims: Array.isArray(e.sims) ? e.sims : [],
       }
     }
   } catch {
     // armazenamento bloqueado ou corrompido: começa vazio
   }
-  return { carteiras: [], ajustes: AJUSTES_PADRAO, dossies: {} }
+  return { carteiras: [], ajustes: AJUSTES_PADRAO, dossies: {}, sims: [] }
 }
 
 let estado = ler()
@@ -95,7 +127,7 @@ if (estado.carteiras.length === 0 && Object.keys(estado.dossies).length === 0) {
     .then((copia) => {
       const tem = (copia?.carteiras?.length ?? 0) > 0 || Object.keys(copia?.dossies ?? {}).length > 0
       if (tem && estado.carteiras.length === 0 && Object.keys(estado.dossies).length === 0) {
-        gravar({ carteiras: copia!.carteiras ?? [], ajustes: { ...AJUSTES_PADRAO, ...copia!.ajustes }, dossies: copia!.dossies ?? {} })
+        gravar({ carteiras: copia!.carteiras ?? [], ajustes: { ...AJUSTES_PADRAO, ...copia!.ajustes }, dossies: copia!.dossies ?? {}, sims: copia!.sims ?? [] })
       }
     })
     .catch(() => undefined)
@@ -123,6 +155,16 @@ export function useEstado() {
 export const useCarteiras = () => useEstado().carteiras
 export const useAjustes = () => useEstado().ajustes
 export const useDossies = () => useEstado().dossies
+export const useSims = () => useEstado().sims
+
+export function salvarSim(c: CarteiraSim) {
+  const existe = estado.sims.some((x) => x.id === c.id)
+  gravar({ ...estado, sims: existe ? estado.sims.map((x) => (x.id === c.id ? c : x)) : [...estado.sims, c] })
+}
+
+export function removerSim(id: string) {
+  gravar({ ...estado, sims: estado.sims.filter((x) => x.id !== id) })
+}
 
 export function salvarDossie(d: Dossie) {
   gravar({ ...estado, dossies: { ...estado.dossies, [d.id]: { ...d, atualizadoEm: Date.now() } } })
@@ -170,7 +212,7 @@ export function definirPrecoMedio(ativo: string, usd: number | null) {
 export function exportarEstado() {
   // As chaves de API não saem no arquivo: ele pode ser compartilhado.
   const { heliusKey: _h, ...resto } = estado.ajustes
-  return JSON.stringify({ app: 'geep', versao: 1, carteiras: estado.carteiras, ajustes: resto, dossies: estado.dossies }, null, 2)
+  return JSON.stringify({ app: 'geep', versao: 1, carteiras: estado.carteiras, ajustes: resto, dossies: estado.dossies, sims: estado.sims }, null, 2)
 }
 
 export function importarEstado(json: string) {
@@ -182,6 +224,7 @@ export function importarEstado(json: string) {
     .filter((c) => !existentes.has(`${c.rede}:${c.endereco}`))
     .map((c) => ({ ...c, id: crypto.randomUUID() }))
   gravar({
+    sims: estado.sims,
     carteiras: [...estado.carteiras, ...novas],
     ajustes: { ...estado.ajustes, ...e.ajustes, heliusKey: estado.ajustes.heliusKey },
     // dossiês do arquivo só entram se não houver um mais novo aqui

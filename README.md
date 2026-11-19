@@ -36,7 +36,11 @@ npm run icons      # regenera os ícones a partir de public/icons/logo.svg
 - **Rendimentos DeFi**: pools da DefiLlama com "cartaz" (APY de agora), **chão** (APY superado em 9 de cada 10 dias do último mês), base × incentivo, sinais de mudança e simulador.
 - **Redes**: taxas, mempool, hashrate, gás, TPS, TVL por rede, volume de DEX, taxas pagas, stablecoins.
 
-**Em breve** — página reservada.
+**Simulação** — carteiras de mentirinha com o capital que você escolher, com custos de verdade: 0,1% de taxa e 0,1% de slippage por operação, e caixa parado rendendo Selic.
+- **Robô do método:** uma vez por dia faz o que o veredito manda, como um humano imperfeito. Às vezes esquece, varia o valor, e de vez em quando faz um aporte mínimo por ansiedade.
+- **Modo manual:** você compra e vende quando quiser, inclusive contra o método. Cada operação guarda o que o método dizia na hora.
+- **Placar:** depois de 7 dias e um movimento acima de 2%, cada operação sua contra o método vira "eu avisei" (o método acertou) ou "admita" (você acertou).
+- **Benchmark:** o mesmo capital todo em BTC no dia da criação.
 
 ## Fontes (todas grátis, sem chave)
 
