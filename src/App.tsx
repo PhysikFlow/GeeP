@@ -3,6 +3,7 @@ import { useIsFetching, useQueryClient } from '@tanstack/react-query'
 import {
   Activity,
   BarChart3,
+  Braces,
   Download,
   Eye,
   EyeOff,
@@ -36,6 +37,7 @@ const ICONE_ABA: Record<AbaIndicadores, typeof Gauge> = {
   triagem: Filter,
   short: TrendingDown,
   pool: Ruler,
+  ia: Braces,
   derivativos: BarChart3,
   rendimentos: Sprout,
   redes: Waypoints,
