@@ -6,6 +6,7 @@ import { useVeredito } from '../lib/indicators/veredito'
 import { useMercado } from '../lib/precos'
 import { caixaHoje, placar, roboJaRodouHoje, rodarMetodo, operar, SLIPPAGE, TAXA, valorSim, type AtivoSim } from '../lib/simulacao'
 import { removerSim, salvarSim, useSims, type CarteiraSim } from '../lib/store'
+import Backtest from './simulacao/Backtest'
 import { Aviso, Delta, Esqueleto, Kpi, Painel, Pill, Segmentado } from '../components/ui'
 
 const ATIVOS: AtivoSim[] = ['BTC', 'ETH', 'SOL']
@@ -86,6 +87,11 @@ export default function SimulacaoPage() {
           Crie uma carteira do robô e outra manual com o mesmo capital para comparar quem se sai melhor.
         </p>
       )}
+      <div className="section-title">
+        <h2>Como o método teria se saído no passado</h2>
+      </div>
+      <Backtest />
+
       <p className="rodape-fontes">
         As carteiras ficam só neste aparelho (e no backup dos Ajustes). O robô roda uma vez por dia, quando você abre esta página e clica — não há
         servidor rodando sozinho. Benchmark: o mesmo capital todo em BTC no dia da criação.
